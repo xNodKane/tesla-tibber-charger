@@ -4,7 +4,7 @@
 		<TargetFramework>net7.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.0</Version>
+		<Version>1.0.1</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Title>Tesla Tibber Charger</Title>
 		<Company>IceBoundStudios</Company>
@@ -13,13 +13,17 @@
 		<PackageTags>tesla,tibber,charger,solar</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageIcon>icon.png</PackageIcon>
+		<Description>This package will offer you an option to charge your car if enough solar power is available.
+Usage of Tibber api + Tesla api</Description>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<None Remove=".gitattributes" />
 		<None Remove=".gitignore" />
-		<None Include="README.md" Pack="true" PackagePath="\"/>
-		<None Include="LICENSE.txt" Pack="true" PackagePath="\"/>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+		<None Include="LICENSE.txt" Pack="true" PackagePath="\" />
+		<None Include="icon.png" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -29,4 +33,3 @@
 	</ItemGroup>
 
 </Project>
-
