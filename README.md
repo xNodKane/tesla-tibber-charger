@@ -1,6 +1,6 @@
 # Tesla Tibber Charger
 
-This package will offer you an option to charger your car if enough solar power is available
+This package will offer you an option to charge your car if enough solar power is available
 
 ## Usage
 ``` csharp
@@ -15,3 +15,5 @@ var curentHomePower = await tibberRrovider.ListenToCurrentHomerPowerAsync();
 var teslaObserver = new TeslaRealtimeTibberCharger(teslaProvider);
 curentHomePower.Subscribe(teslaObserver);
 ```
+
+### Please contribute to improving this experience
