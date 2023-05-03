@@ -49,14 +49,14 @@ public class TeslaAdapter : ITeslaAdapter
     public async Task<VehicleDrivingState> GetVehicleDrivingStateAsync()
     {
         var vehicle = await WakeOrGetVehicleAsync();
-        var repsonse = await _httpClient.GetAsync($"{_baseUrl}/api/1/vehicles/{vehicle.Id}/data_request/drive_state");
+        var repsonse = await _httpClient.GetAsync($"{_baseUrl}/api/1/vehicles/{vehicle.Id}/");
         if (!repsonse.IsSuccessStatusCode)
         {
             throw new Exception("can not get data");
         }
         var jsonString = await repsonse.Content.ReadAsStringAsync();
-        var vehicleChargingResponse = JsonSerializer.Deserialize<VehicleDrivingStateResponse>(jsonString);
-        return vehicleChargingResponse!.Response;
+        var vehicleChargingResponse = JsonSerializer.Deserialize<VehicleDataResponse>(jsonString);
+        return vehicleChargingResponse!.Response.VehicleDrivingState;
     }
 
     private async Task<bool> IsAtHomeAsync()
