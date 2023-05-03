@@ -2,10 +2,16 @@
 
 namespace TeslaTibberCharger.Data;
 
-public class VehicleDrivingStateResponse
+public class VehicleDataResponse
 {
     [JsonPropertyName("response")]
-    public VehicleDrivingState Response { get; set; } = null!;
+    public VehicleMetaData Response { get; set; } = null!;
+}
+
+public class VehicleMetaData
+{
+    [JsonPropertyName("drive_state")]
+    public VehicleDrivingState VehicleDrivingState { get; set; } = null!;
 }
 
 public class VehicleDrivingState
