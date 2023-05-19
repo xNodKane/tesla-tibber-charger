@@ -12,6 +12,8 @@ public class VehicleMetaData
 {
     [JsonPropertyName("drive_state")]
     public VehicleDrivingState VehicleDrivingState { get; set; } = null!;
+    [JsonPropertyName("charge_state")]
+    public VehicleChargeState VehicleChargeState { get; set; } = null!;
 }
 
 public class VehicleDrivingState
@@ -33,4 +35,14 @@ public class VehicleDrivingState
 
     [JsonPropertyName("heading")]
     public int Heading { get; set; }
+}
+
+public class VehicleChargeState
+{
+    [JsonPropertyName("charging_state")]
+    public string ChargingState { get; set; } = default!;
+    [JsonPropertyName("charge_port_latch")]
+    public string ChargePortLatch { get; set; } = default!;
+    [JsonPropertyName("charge_port_door_open")]
+    public bool ChargePortDoortOpen { get; set; }
 }

@@ -4,7 +4,7 @@
 		<TargetFramework>net7.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.2</Version>
+		<Version>1.1.0</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Title>Tesla Tibber Charger</Title>
 		<Company>IceBoundStudios</Company>
@@ -15,7 +15,8 @@
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<PackageIcon>icon.png</PackageIcon>
 		<Description>This package will offer you an option to charge your car if enough solar power is available.
-Usage of Tibber api + Tesla api</Description>
+For that we will check if your Tibber pulse has negative power consumption. And if so it will trigger your Tesla to start charging.
+</Description>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -27,6 +28,7 @@ Usage of Tibber api + Tesla api</Description>
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
 		<PackageReference Include="Tibber.Sdk" Version="0.5.1-beta" />
 		<PackageReference Include="System.Text.Json" Version="7.0.2" />
 		<PackageReference Include="System.Net.Http" Version="4.3.4" />

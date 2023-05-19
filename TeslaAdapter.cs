@@ -1,4 +1,6 @@
-﻿using System.Net.Http.Headers;
+﻿using Microsoft.Extensions.Caching.Memory;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using TeslaTibberCharger.Data;
@@ -9,12 +11,15 @@ namespace TeslaTibberCharger;
 public class TeslaAdapter : ITeslaAdapter
 {
     private readonly HttpClient _httpClient;
+    private readonly IMemoryCache _memoryCache;
     private readonly decimal? _homeLatitude;
     private readonly decimal? _homeLongitude;
     private readonly string _baseUrl = "https://owner-api.teslamotors.com";
 
     public TeslaAdapter(HttpClient httpClient, string accessToken)
     {
+        var options = new MemoryCacheOptions();
+        _memoryCache = new MemoryCache(options);
         _httpClient = httpClient;
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
@@ -28,6 +33,8 @@ public class TeslaAdapter : ITeslaAdapter
     /// <param name="homeLongitude">provide the gps longitude of your home. So its only charging at home</param>
     public TeslaAdapter(HttpClient httpClient, string accessToken, decimal homeLatitude, decimal homeLongitude)
     {
+        var options = new MemoryCacheOptions();
+        _memoryCache = new MemoryCache(options);
         _httpClient = httpClient;
         _homeLatitude = homeLatitude;
         _homeLongitude = homeLongitude;
@@ -36,73 +43,46 @@ public class TeslaAdapter : ITeslaAdapter
 
     public async Task<Vehicle> GetVehicleAsync()
     {
-        var response = await _httpClient.GetAsync($"{_baseUrl}/api/1/vehicles");
-        if (!response.IsSuccessStatusCode)
+        var entry = await _memoryCache.GetOrCreateAsync("vehicle", async (cacheEntry) =>
         {
-            throw new Exception("can not get vehicle infos");
-        }
-        var jsonString = await response.Content.ReadAsStringAsync();
-        var vehicleResponse = JsonSerializer.Deserialize<VehicleResponse>(jsonString);
-        return vehicleResponse!.Response.First();
+            var response = await _httpClient.GetFromJsonAsync<VehicleResponse>($"{_baseUrl}/api/1/vehicles");
+            var vehicle = response?.Response.FirstOrDefault();
+            cacheEntry.AbsoluteExpiration = DateTimeOffset.UtcNow.AddMinutes(10);
+            return vehicle;
+        });
+        return entry;
     }
 
-    public async Task<VehicleDrivingState> GetVehicleDrivingStateAsync()
+    public async Task<VehicleMetaData> GetVehicleDataAsync()
     {
-        var vehicle = await WakeOrGetVehicleAsync();
-        var repsonse = await _httpClient.GetAsync($"{_baseUrl}/api/1/vehicles/{vehicle.Id}/");
-        if (!repsonse.IsSuccessStatusCode)
+        var response = await _memoryCache.GetOrCreateAsync("vehicle_driving_state", async (cacheEntry) =>
         {
-            throw new Exception("can not get data");
+            var vehicle = await GetVehicleAsync();
+            cacheEntry.AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(10);
+            return await _httpClient.GetFromJsonAsync<VehicleDataResponse>($"{_baseUrl}/api/1/vehicles/{vehicle.Id}/vehicle_data");
+        });
+
+        if (response is null)
+        {
+            throw new Exception("can not get vehicle data");
         }
-        var jsonString = await repsonse.Content.ReadAsStringAsync();
-        var vehicleChargingResponse = JsonSerializer.Deserialize<VehicleDataResponse>(jsonString);
-        return vehicleChargingResponse!.Response.VehicleDrivingState;
+        return response.Response;
     }
 
     private async Task<bool> IsAtHomeAsync()
     {
-        if (_homeLongitude is null && _homeLatitude is null)
+        var data = await GetVehicleDataAsync();
+        var teslaLatiude = Math.Round(data.VehicleDrivingState.Latitude, 2);
+        var teslaLonitude = Math.Round(data.VehicleDrivingState.Longitude, 2);
+        var chargePortLatchEngaged = data.VehicleChargeState.ChargePortLatch == "Engaged" && data.VehicleChargeState.ChargePortDoortOpen == true;
+        if (!chargePortLatchEngaged)
         {
-            return true;
+            return false;
         }
 
-        var state = await GetVehicleDrivingStateAsync();
-        var teslaLatiude = Math.Round(state.Latitude, 2);
-        var teslaLonitude = Math.Round(state.Longitude, 2);
-
-        return teslaLatiude == _homeLatitude && teslaLonitude == _homeLongitude;
-    }
-
-    public async Task VehicleChargerPortOpenAsync()
-    {
-        if (await IsAtHomeAsync() == false)
-        {
-            return;
-        }
-        var vehicle = await WakeOrGetVehicleAsync();
-        var message = BuildRequest(HttpMethod.Post, $"{_baseUrl}/api/1/vehicles/{vehicle.Id}/command/charge_port_door_open");
-        var response = await _httpClient.SendAsync(message);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new Exception("can not open charger port");
-        }
-    }
-
-    public async Task VehicleChargerPortCloseAsync()
-    {
-        if (await IsAtHomeAsync() == false)
-        {
-            return;
-        }
-        var vehicle = await WakeOrGetVehicleAsync();
-        var message = BuildRequest(HttpMethod.Post, $"{_baseUrl}/api/1/vehicles/{vehicle.Id}/command/charge_port_door_close");
-        var response = await _httpClient.SendAsync(message);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new Exception("can not open charger port");
-        }
+        return (_homeLongitude is null && _homeLatitude is null
+             || teslaLatiude == _homeLatitude && teslaLonitude == _homeLongitude)
+             && chargePortLatchEngaged;
     }
 
     public async Task<int> SetChargingLimitAsync(int amps)
@@ -162,13 +142,15 @@ public class TeslaAdapter : ITeslaAdapter
 
     private async Task<Vehicle> WakeOrGetVehicleAsync()
     {
-        var vehicle = await GetVehicleAsync();
-        if (vehicle.State == "asleep" || vehicle.State == "offline")
+        var vehicle = await GetVehicleAsync() ?? throw new Exception("Tesla: can not get vehicle data");
+
+        if (vehicle.State is "asleep" or "offline")
         {
             var message = BuildRequest(HttpMethod.Post, $"{_baseUrl}/api/1/vehicles/{vehicle.Id}/wake_up");
-            var response = await _httpClient.SendAsync(message);
+            await _httpClient.SendAsync(message);
             await Task.Delay(15000);
-            vehicle = await GetVehicleAsync();
+            var response = await _httpClient.GetFromJsonAsync<VehicleResponse>($"{_baseUrl}/api/1/vehicles");
+            _memoryCache.Set("vehicle", response?.Response.First());
         }
         return vehicle;
     }
