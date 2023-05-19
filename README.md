@@ -29,5 +29,4 @@ void TeslaObserver_OnConnectionIssue()
 ```
 
 ## Contribution
-
 Feel free to help to make it better
