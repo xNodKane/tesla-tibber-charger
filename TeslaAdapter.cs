@@ -73,36 +73,6 @@ public class TeslaAdapter : ITeslaAdapter
         return teslaLatiude == _homeLatitude && teslaLonitude == _homeLongitude;
     }
 
-    public async Task VehicleChargerPortOpenAsync()
-    {
-        if (await IsAtHomeAsync() == false)
-        {
-            return;
-        }
-        var vehicle = await WakeOrGetVehicleAsync();
-        var message = BuildRequest(HttpMethod.Post, $"{_baseUrl}/api/1/vehicles/{vehicle.Id}/command/charge_port_door_open");
-        var response = await _httpClient.SendAsync(message);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new Exception("can not open charger port");
-        }
-    }
-
-    public async Task VehicleChargerPortCloseAsync()
-    {
-        if (await IsAtHomeAsync() == false)
-        {
-            return;
-        }
-        var vehicle = await WakeOrGetVehicleAsync();
-        var message = BuildRequest(HttpMethod.Post, $"{_baseUrl}/api/1/vehicles/{vehicle.Id}/command/charge_port_door_close");
-        var response = await _httpClient.SendAsync(message);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new Exception("can not open charger port");
-        }
     }
 
     public async Task<int> SetChargingLimitAsync(int amps)
