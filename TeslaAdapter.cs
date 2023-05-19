@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using TeslaTibberCharger.Data;
@@ -46,33 +47,31 @@ public class TeslaAdapter : ITeslaAdapter
         return vehicleResponse!.Response.First();
     }
 
-    public async Task<VehicleDrivingState> GetVehicleDrivingStateAsync()
+    public async Task<VehicleMetaData> GetVehicleDataAsync()
     {
         var vehicle = await WakeOrGetVehicleAsync();
-        var repsonse = await _httpClient.GetAsync($"{_baseUrl}/api/1/vehicles/{vehicle.Id}/");
-        if (!repsonse.IsSuccessStatusCode)
+        var response = await _httpClient.GetFromJsonAsync<VehicleDataResponse>($"{_baseUrl}/api/1/vehicles/{vehicle.Id}/vehicle_data");
+        if (response is null)
         {
-            throw new Exception("can not get data");
+            throw new Exception("can not get vehicle data");
         }
-        var jsonString = await repsonse.Content.ReadAsStringAsync();
-        var vehicleChargingResponse = JsonSerializer.Deserialize<VehicleDataResponse>(jsonString);
-        return vehicleChargingResponse!.Response.VehicleDrivingState;
+        return response.Response;
     }
 
     private async Task<bool> IsAtHomeAsync()
     {
-        if (_homeLongitude is null && _homeLatitude is null)
+        var data = await GetVehicleDataAsync();
+        var teslaLatiude = Math.Round(data.VehicleDrivingState.Latitude, 2);
+        var teslaLonitude = Math.Round(data.VehicleDrivingState.Longitude, 2);
+        var chargePortLatchEngaged = data.VehicleChargeState.ChargePortLatch == "Engaged" && data.VehicleChargeState.ChargePortDoortOpen == true;
+        if (!chargePortLatchEngaged)
         {
-            return true;
+            return false;
         }
 
-        var state = await GetVehicleDrivingStateAsync();
-        var teslaLatiude = Math.Round(state.Latitude, 2);
-        var teslaLonitude = Math.Round(state.Longitude, 2);
-
-        return teslaLatiude == _homeLatitude && teslaLonitude == _homeLongitude;
-    }
-
+        return (_homeLongitude is null && _homeLatitude is null
+             || teslaLatiude == _homeLatitude && teslaLonitude == _homeLongitude)
+             && chargePortLatchEngaged;
     }
 
     public async Task<int> SetChargingLimitAsync(int amps)

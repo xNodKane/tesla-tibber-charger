@@ -13,6 +13,7 @@ public class TeslaRealtimeTibberCharger : IObserver<RealTimeMeasurement>
     private bool _teslaApiAttempt = false;
     private int _counterToStopCharge = 0;
     private DateTime _lastChangeTime = DateTime.MinValue;
+    public event Action? OnConnectionClosed;
 
     public TeslaRealtimeTibberCharger(ITeslaAdapter teslaAdapter)
     {
@@ -26,7 +27,11 @@ public class TeslaRealtimeTibberCharger : IObserver<RealTimeMeasurement>
         _teslaAdapter = teslaAdapter;
     }
 
-    public void OnCompleted() => Console.WriteLine("Real time measurement stream has been terminated. ");
+    public void OnCompleted()
+    {
+        Console.WriteLine("Real time measurement stream has been terminated. ");
+        OnConnectionClosed?.Invoke();
+    }
     public void OnError(Exception error) => Console.WriteLine($"An error occured: {error.Message}");
 
     public void OnNext(RealTimeMeasurement value)

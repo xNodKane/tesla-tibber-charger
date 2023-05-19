@@ -3,7 +3,7 @@
 public interface ITeslaAdapter
 {
     Task<Vehicle> GetVehicleAsync();
-    Task<VehicleDrivingState> GetVehicleDrivingStateAsync();
+    Task<VehicleMetaData> GetVehicleDataAsync();
     Task ChargingStartAsync();
     Task ChargingStopAsync();
     Task<int> SetChargingLimitAsync(int amps);
